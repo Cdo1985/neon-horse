@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AU 100 // GLITCH-CORE VAULT</title>
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-pink: #ff00ff;
+            --neon-blue: #00f3ff;
+            --bg-black: #050505;
+            --card-gray: #111;
+            --bay: #5c3a21;
+            --chestnut: #a0522d;
+            --grey: #808080;
+            --black: #000000;
+            --brown: #3d2b1f;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- Glitch Header --- */
+        header {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 2px solid var(--neon-green);
+            background: linear-gradient(45deg, #111, #000);
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            margin: 0;
+            color: var(--neon-green);
+            text-shadow: 2px 2px var(--neon-pink);
+            animation: glitch-text 3s infinite;
+        }
+
+        #finder {
+            margin-top: 20px;
+            background: black;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 10px 20px;
+            width: 300px;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        /* --- Breeding Bay --- */
+        #breeding-bay {
+            background: #000;
+            border: 2px dashed var(--neon-pink);
+            margin: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        #legacy-output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid white;
+            background: #111;
+        }
+
+        /* --- Vault Grid --- */
+        #vault-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 40px;
+        }
+
+        .horse-card {
+            background: var(--card-gray);
+            padding: 15px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #333;
+            clip-path: polygon(0% 0%, 95% 0%, 100% 5%, 100% 100%, 5% 100%, 0% 95%);
+            transition: transform 0.1s, border-color 0.2s;
+        }
+
+        .horse-card:hover {
+            border-color: var(--neon-green);
+            transform: scale(1.02);
+        }
+
+        .horse-card.selected {
+            border: 2px solid var(--neon-pink);
+            background: #1a001a;
+        }
+
+        /* Color-Coded Glitch Borders */
+        .bay { border-left: 8px solid var(--bay); }
+        .chestnut { border-left: 8px solid var(--chestnut); }
+        .grey { border-left: 8px solid var(--grey); }
+        .black { border-left: 8px solid var(--black); }
+        .brown { border-left: 8px solid var(--brown); }
+
+        .rank {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--neon-blue);
+            margin-bottom: 10px;
+        }
+
+        .stats { font-size: 0.7rem; color: #aaa; line-height: 1.5; }
+        .stats b { color: var(--neon-green); }
+
+        /* --- Animations --- */
+        @keyframes glitch-text {
+            0% { transform: translate(0); }
+            2% { transform: translate(-5px, 2px); skewX(10deg); }
+            4% { transform: translate(5px, -2px); skewX(-10deg); }
+            6% { transform: translate(0); }
+        }
+
+        .legacy-svg {
+            width: 300px;
+            height: 300px;
+            filter: contrast(150%) brightness(120%);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>AU 100 // VAULT</h1>
+    <input type="text" id="finder" placeholder="SEARCH LEGEND...">
+</header>
+
+<div id="breeding-bay">
+    <div id="selection-status">SELECT TWO LEGENDS TO BREED DESCENDANT</div>
+    <div id="legacy-output"></div>
+</div>
+
+<div id="vault-grid"></div>
+
+<script>
+const horseData = [
+    { rank: 1, name: "Phar Lap", color: "chestnut", sire: "Night Raid", dam: "Entreaty" },
+    { rank: 2, name: "Tulloch", color: "bay", sire: "Khorassan", dam: "Florida" },
+    { rank: 3, name: "Winx", color: "bay", sire: "Street Cry", dam: "Vegas Showgirl" },
+    { rank: 4, name: "Carbine", color: "bay", sire: "Musket", dam: "Mersey" },
+    { rank: 5, name: "Kingston Town", color: "black", sire: "Bletchingly", dam: "Ada Hunter" },
+    { rank: 6, name: "Black Caviar", color: "bay", sire: "Bel Esprit", dam: "Helsinge" },
+    { rank: 7, name: "Makybe Diva", color: "bay", sire: "Desert King", dam: "Tugela" },
+    { rank: 8, name: "Wakeful", color: "bay", sire: "Trenton", dam: "Insomnia" },
+    { rank: 9, name: "Bernborough", color: "bay", sire: "Emborough", dam: "Bern Maid" },
+    { rank: 10, name: "Sunline", color: "bay", sire: "Desert Sun", dam: "Songline" },
+    { rank: 11, name: "Manikato", color: "chestnut", sire: "Manihi", dam: "Markato" },
+    { rank: 12, name: "Vain", color: "chestnut", sire: "Wilkes", dam: "Elated" },
+    { rank: 13, name: "Peter Pan", color: "chestnut", sire: "Pantheon", dam: "Alwina" },
+    { rank: 14, name: "Rising Fast", color: "bay", sire: "Alonzo", dam: "Faster" },
+    { rank: 15, name: "Gloaming", color: "bay", sire: "The Welkin", dam: "Light" },
+    { rank: 16, name: "Might and Power", color: "bay", sire: "Zabeel", dam: "Benediction" },
+    { rank: 17, name: "Ajax", color: "chestnut", sire: "Heroic", dam: "Medmenham" },
+    { rank: 18, name: "Gunsynd", color: "grey", sire: "Sunset Hue", dam: "Woodie" },
+    { rank: 19, name: "Octagonal", color: "brown", sire: "Zabeel", dam: "Eight Carat" },
+    { rank: 20, name: "Lonhro", color: "black", sire: "Octagonal", dam: "Shadea" },
+    { rank: 21, name: "Todman", color: "chestnut", sire: "Star Kingdom", dam: "Oceana" },
+    { rank: 22, name: "So You Think", color: "bay", sire: "High Chaparral", dam: "Triassic" },
+    { rank: 23, name: "Northerly", color: "bay", sire: "Serheed", dam: "North Bell" },
+    { rank: 24, name: "Better Loosen Up", color: "bay", sire: "Loosen Up", dam: "Better" },
+    { rank: 25, name: "Saintly", color: "chestnut", sire: "Sky Chase", dam: "All Grace" },
+    { rank: 26, name: "Super Impose", color: "bay", sire: "Imposing", dam: "Pheroz" },
+    { rank: 27, name: "Malua", color: "bay", sire: "St. Albans", dam: "Edella" },
+    { rank: 28, name: "The Barb", color: "black", sire: "Sir Hercules", dam: "Young" },
+    { rank: 29, name: "Eurythmic", color: "chestnut", sire: "Eudorus", dam: "Bob" },
+    { rank: 30, name: "Grand Flaneur", color: "bay", sire: "Yattendon", dam: "First" },
+    { rank: 31, name: "Poseidon", color: "bay", sire: "Positano", dam: "Jacinth" },
+    { rank: 32, name: "Chatham", color: "bay", sire: "Windbag", dam: "Myosotis" },
+    { rank: 33, name: "Amounis", color: "brown", sire: "Magpie", dam: "Loved" },
+    { rank: 34, name: "Redcraze", color: "chestnut", sire: "Red", dam: "My" },
+    { rank: 35, name: "Galilee", color: "bay", sire: "Alcimedes", dam: "Galston" },
+    { rank: 36, name: "Strawberry Road", color: "bay", sire: "Whiskey", dam: "Gift" },
+    { rank: 37, name: "Dulcify", color: "bay", sire: "Decies", dam: "Sweet" },
+    { rank: 38, name: "Shannon", color: "bay", sire: "Midstream", dam: "Idle" },
+    { rank: 39, name: "Sky High", color: "bay", sire: "Star Kingdom", dam: "Oceana" },
+    { rank: 40, name: "Takeover Target", color: "bay", sire: "Celtic Swing", dam: "Shady Stream" },
+    { rank: 41, name: "Manfred", color: "bay", sire: "Valais", dam: "Otford" },
+    { rank: 42, name: "Spearfelt", color: "brown", sire: "Spearmint", dam: "Lady" },
+    { rank: 43, name: "Heroic", color: "chestnut", sire: "Valais", dam: "Chersonese" },
+    { rank: 44, name: "Hall Mark", color: "chestnut", sire: "Heroic", dam: "Herowinkie" },
+    { rank: 45, name: "Let's Elope", color: "chestnut", sire: "Nassipour", dam: "Sharon" },
+    { rank: 46, name: "Beau Vite", color: "brown", sire: "Beau Pere", dam: "Dominant" },
+    { rank: 47, name: "Mahogany", color: "bay", sire: "Last Tycoon", dam: "Al Amirah" },
+    { rank: 48, name: "Bonecrusher", color: "chestnut", sire: "Pag-Asa", dam: "Imitation" },
+    { rank: 49, name: "Archer", color: "bay", sire: "William Tell", dam: "Maid of Oaks" },
+    { rank: 50, name: "Poitrel", color: "chestnut", sire: "St. Alwyne", dam: "Poinard" },
+    { rank: 51, name: "Tranquil Star", color: "chestnut", sire: "Gay Lothario", dam: "Lone Star" },
+    { rank: 52, name: "Comic Court", color: "brown", sire: "Powerscourt", dam: "Witty Maid" },
+    { rank: 53, name: "Delta", color: "brown", sire: "Midstream", dam: "Gazza" },
+    { rank: 54, name: "Dalray", color: "bay", sire: "Balloch", dam: "Dusky Bay" },
+    { rank: 55, name: "Rain Lover", color: "bay", sire: "Latin Lover", dam: "Rain" },
+    { rank: 56, name: "Luskin Star", color: "chestnut", sire: "Kaoru Star", dam: "Promising" },
+    { rank: 57, name: "Red Anchor", color: "chestnut", sire: "Sea Anchor", dam: "Decoy Girl" },
+    { rank: 58, name: "Briseis", color: "bay", sire: "Tim Whiffler", dam: "Musidora" },
+    { rank: 59, name: "High Caste", color: "bay", sire: "Bulandshar", dam: "The Begum" },
+    { rank: 60, name: "Miss Andretti", color: "bay", sire: "Artie Schiller", dam: "Peggie's Bid" },
+    { rank: 61, name: "Surround", color: "grey", sire: "Sovereign Edition", dam: "Micheline" },
+    { rank: 62, name: "Chautauqua", color: "grey", sire: "Encosta De Lago", dam: "Lovely Jubly" },
+    { rank: 63, name: "Nature Strip", color: "chestnut", sire: "Nicconi", dam: "Strikeline" },
+    { rank: 64, name: "Verry Elleegant", color: "brown", sire: "Zed", dam: "Opulence" },
+    { rank: 65, name: "Eurythmic", color: "chestnut", sire: "Eudorus", dam: "Bob" },
+    { rank: 66, name: "Vo Rogue", color: "bay", sire: "Ivor Prince", dam: "Vow" },
+    { rank: 67, name: "Super Easy", color: "bay", sire: "Darci Brahma", dam: "Parfee" },
+    { rank: 68, name: "Apache Cat", color: "chestnut", sire: "Lion Cavern", dam: "Tennessee Blaze" },
+    { rank: 69, name: "Black Heart Bart", color: "bay", sire: "Blackfriars", dam: "Sister Dot" },
+    { rank: 70, name: "Weekend Hussler", color: "chestnut", sire: "Hussonet", dam: "Weekend Beauty" },
+    { rank: 71, name: "More Joyous", color: "bay", sire: "More Than Ready", dam: "Sunday Joy" },
+    { rank: 72, name: "Pierro", color: "bay", sire: "Lonhro", dam: "Miss Right Note" },
+    { rank: 73, name: "Lankan Rupee", color: "bay", sire: "Redoute's Choice", dam: "Estelle Collection" },
+    { rank: 74, name: "Atlantic Jewel", color: "bay", sire: "Fastnet Rock", dam: "Regard" },
+    { rank: 75, name: "Ethereal", color: "bay", sire: "Rhythm", dam: "Romanee Conti" },
+    { rank: 76, name: "Baguette", color: "chestnut", sire: "Rego", dam: "Dark Jewel" },
+    { rank: 77, name: "Emancipation", color: "grey", sire: "Bletchingly", dam: "Ammo Girl" },
+    { rank: 78, name: "Veno", color: "bay", sire: "Sir Hercules", dam: "Unknown" },
+    { rank: 79, name: "Trenton", color: "bay", sire: "Musket", dam: "Frailty" },
+    { rank: 80, name: "Wallace", color: "chestnut", sire: "Carbine", dam: "Melodious" },
+    { rank: 81, name: "Desert Gold", color: "bay", sire: "All Black", dam: "Aurarius" },
+    { rank: 82, name: "Artilleryman", color: "chestnut", sire: "Comedy King", dam: "Cross Battery" },
+    { rank: 83, name: "Giga Kick", color: "chestnut", sire: "Scissor Kick", dam: "Rekindled Applause" },
+    { rank: 84, name: "Beau Zam", color: "bay", sire: "Zamazaan", dam: "Belle Of The Ball" },
+    { rank: 85, name: "Choisir", color: "chestnut", sire: "Danehill Dancer", dam: "Great Selection" },
+    { rank: 86, name: "Fastnet Rock", color: "bay", sire: "Danehill", dam: "Piccadilly Circus" },
+    { rank: 87, name: "Redoute's Choice", color: "bay", sire: "Danehill", dam: "Shantha's Choice" },
+    { rank: 88, name: "Snitzel", color: "bay", sire: "Redoute's Choice", dam: "Snippets' Lass" },
+    { rank: 89, name: "I Am Invincible", color: "bay", sire: "Invincible Spirit", dam: "Cannarelle" },
+    { rank: 90, name: "Zoustar", color: "bay", sire: "Northern Meteor", dam: "Zouzou" },
+    { rank: 91, name: "Anamoe", color: "bay", sire: "Street Boss", dam: "Anamato" },
+    { rank: 92, name: "Pride of Jenni", color: "bay", sire: "Pride Of Dubai", dam: "Sarchi's Mist" },
+    { rank: 93, name: "Via Sistina", color: "bay", sire: "Fastnet Rock", dam: "Nance" },
+    { rank: 94, name: "Mr Brightside", color: "bay", sire: "Bullbars", dam: "Lilahjay" },
+    { rank: 95, name: "Romantic Warrior", color: "bay", sire: "Acclamation", dam: "Folk Melody" },
+    { rank: 96, name: "Giga Kick", color: "chestnut", sire: "Scissor Kick", dam: "Rekindled" },
+    { rank: 97, name: "Yes Yes Yes", color: "bay", sire: "Rubick", dam: "Sin She Can" },
+    { rank: 98, name: "Russian Revolution", color: "bay", sire: "Snitzel", dam: "Ballet D'Amour" },
+    { rank: 99, name: "Estijaab", color: "bay", sire: "Snitzel", dam: "Response" },
+    { rank: 100, name: "Farnan", color: "bay", sire: "Not A Single Doubt", dam: "Tallow" }
+];
+
+let selection = [];
+const grid = document.getElementById('vault-grid');
+const legacyOutput = document.getElementById('legacy-output');
+const status = document.getElementById('selection-status');
+
+function render(list) {
+    grid.innerHTML = '';
+    list.forEach(h => {
+        const card = document.createElement('div');
+        card.className = `horse-card ${h.color}`;
+        card.innerHTML = `
+            <div class="rank">ID_${h.rank.toString().padStart(3, '0')}</div>
+            <div class="name">${h.name}</div>
+            <div class="stats">
+                SIRE: <b>${h.sire}</b><br>
+                DAM: <b>${h.dam}</b><br>
+                COAT: <b>${h.color.toUpperCase()}</b>
+            </div>
+        `;
+        card.onclick = () => selectHorse(h, card);
+        grid.appendChild(card);
+    });
+}
+
+function selectHorse(horse, el) {
+    if (selection.includes(horse)) {
+        selection = selection.filter(h => h !== horse);
+        el.classList.remove('selected');
+    } else if (selection.length < 2) {
+        selection.push(horse);
+        el.classList.add('selected');
+    }
+
+    if (selection.length === 2) {
+        generateLegacy(selection[0], selection[1]);
+    } else {
+        legacyOutput.innerHTML = '';
+        status.innerText = "SELECT TWO LEGENDS TO BREED DESCENDANT";
+    }
+}
+
+function generateLegacy(p1, p2) {
+    const legacyName = (p1.name.substring(0, 4) + p2.name.substring(p2.name.length - 4)).toUpperCase();
+    status.innerText = `SYNTHESIZING: ${legacyName}`;
+    
+    // Generative SVG Glitch Logic
+    const color1 = getComputedStyle(document.documentElement).getPropertyValue(`--neon-blue`).trim();
+    const color2 = getComputedStyle(document.documentElement).getPropertyValue(`--neon-pink`).trim();
+    
+    const svg = `
+        <svg viewBox="0 0 200 200" class="legacy-svg" xmlns="http://www.w3.org/2000/svg">
+            <filter id="glitch">
+                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" />
+            </filter>
+            <rect width="100%" height="100%" fill="#000" />
+            <g filter="url(#glitch)">
+                <circle cx="100" cy="100" r="60" stroke="${color1}" stroke-width="2" fill="none" opacity="0.6" />
+                <rect x="50" y="50" width="100" height="100" stroke="${color2}" stroke-width="1" fill="none" />
+                <path d="M 20 100 L 180 100 M 100 20 L 100 180" stroke="white" stroke-width="0.5" />
+                <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10" font-family="monospace">
+                    DESCENDANT: ${legacyName}
+                </text>
+                <text x="50%" y="96%" dominant-baseline="middle" text-anchor="middle" fill="${color1}" font-size="6">
+                    GENETIC MASH: ${p1.rank} x ${p2.rank}
+                </text>
+            </g>
+        </svg>
+    `;
+    legacyOutput.innerHTML = svg;
+}
+
+render(horseData);
+
+document.getElementById('finder').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = horseData.filter(h => 
+        h.name.toLowerCase().includes(term) || h.rank.toString() === term
+    );
+    render(filtered);
+});
+</script>
+</body>
+</html>
