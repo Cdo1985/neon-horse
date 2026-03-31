@@ -140,6 +140,175 @@
             height: 300px;
             filter: contrast(150%) brightness(120%);
         }
+
+        /* --- Racing Mode --- */
+        #racing-bay {
+            display: none;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a001a 100%);
+            border: 3px solid var(--neon-green);
+            margin: 20px;
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        #racing-bay.active {
+            display: block;
+        }
+
+        .race-header {
+            text-align: center;
+            color: var(--neon-green);
+            font-size: 2rem;
+            text-shadow: 0 0 10px var(--neon-green);
+            margin-bottom: 30px;
+            animation: glitch-text 2s infinite;
+        }
+
+        .race-track {
+            background: linear-gradient(90deg, #000 0%, #111 50%, #000 100%);
+            border: 2px solid var(--neon-blue);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .race-lane {
+            display: flex;
+            align-items: center;
+            height: 60px;
+            margin: 15px 0;
+            background: rgba(0, 255, 65, 0.05);
+            border-left: 2px dashed var(--neon-pink);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .horse-name {
+            min-width: 180px;
+            color: var(--neon-blue);
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 0.9rem;
+        }
+
+        .race-bar {
+            flex: 1;
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green) 0%, var(--neon-pink) 100%);
+            position: relative;
+            max-width: 0;
+            transition: max-width 0.1s linear;
+            clip-path: polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .race-position {
+            min-width: 40px;
+            text-align: right;
+            color: var(--neon-pink);
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .race-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .race-button {
+            background: var(--neon-green);
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 10px;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+        }
+
+        .race-button:hover {
+            box-shadow: 0 0 30px var(--neon-green);
+            transform: scale(1.05);
+        }
+
+        .race-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .race-results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #111;
+            border: 1px solid var(--neon-pink);
+            color: var(--neon-green);
+            text-align: center;
+            display: none;
+        }
+
+        .race-results.show {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .winner-title {
+            font-size: 1.5rem;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            margin: 15px 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .tab-button {
+            background: #111;
+            color: var(--neon-blue);
+            border: 2px solid var(--neon-blue);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .tab-button.active {
+            background: var(--neon-green);
+            color: black;
+            border-color: var(--neon-green);
+        }
+
+        .tab-button:hover {
+            border-color: var(--neon-green);
+        }
+
+        #breeding-bay.hide {
+            display: none;
+        }
+
+        #vault-grid.hide {
+            display: none;
+        }
+
+        #descendants-list {
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -149,9 +318,25 @@
     <input type="text" id="finder" placeholder="SEARCH LEGEND...">
 </header>
 
+<div class="tab-buttons">
+    <button class="tab-button active" data-tab="breeding">BREEDING VAULT</button>
+    <button class="tab-button" data-tab="racing">RACING ARENA</button>
+</div>
+
 <div id="breeding-bay">
     <div id="selection-status">SELECT TWO LEGENDS TO BREED DESCENDANT</div>
     <div id="legacy-output"></div>
+</div>
+
+<div id="racing-bay">
+    <div class="race-header">⚡ NEON RACEWAY ⚡</div>
+    <div id="descendants-list"></div>
+    <div class="race-controls">
+        <button class="race-button" id="start-race-btn">START RACE</button>
+        <button class="race-button" id="reset-race-btn">RESET</button>
+    </div>
+    <div class="race-track" id="race-track"></div>
+    <div class="race-results" id="race-results"></div>
 </div>
 
 <div id="vault-grid"></div>
@@ -167,15 +352,15 @@ const horseData = [
     { rank: 7, name: "Makybe Diva", color: "bay", sire: "Desert King", dam: "Tugela" },
     { rank: 8, name: "Wakeful", color: "bay", sire: "Trenton", dam: "Insomnia" },
     { rank: 9, name: "Bernborough", color: "bay", sire: "Emborough", dam: "Bern Maid" },
-    { rank: 10, name: "Sunline", color: "bay", sire: "Desert Sun", dam: "Songline" },
-    { rank: 11, name: "Manikato", color: "chestnut", sire: "Manihi", dam: "Markato" },
-    { rank: 12, name: "Vain", color: "chestnut", sire: "Wilkes", dam: "Elated" },
-    { rank: 13, name: "Peter Pan", color: "chestnut", sire: "Pantheon", dam: "Alwina" },
-    { rank: 14, name: "Rising Fast", color: "bay", sire: "Alonzo", dam: "Faster" },
-    { rank: 15, name: "Gloaming", color: "bay", sire: "The Welkin", dam: "Light" },
-    { rank: 16, name: "Might and Power", color: "bay", sire: "Zabeel", dam: "Benediction" },
-    { rank: 17, name: "Ajax", color: "chestnut", sire: "Heroic", dam: "Medmenham" },
-    { rank: 18, name: "Gunsynd", color: "grey", sire: "Sunset Hue", dam: "Woodie" },
+    { rank: 10, name: "Sunline", color: "chestnut", sire: "Al Hareb", dam: "Sunny" },
+    { rank: 11, name: "Nimblefoot", color: "grey", sire: "Barefoot", dam: "Quick" },
+    { rank: 12, name: "Strawberry", color: "bay", sire: "Harvest", dam: "Berry" },
+    { rank: 13, name: "Thunder Strike", color: "black", sire: "Lightning", dam: "Storm" },
+    { rank: 14, name: "Golden Dawn", color: "chestnut", sire: "Sunrise", dam: "Dusk" },
+    { rank: 15, name: "Silver Shadow", color: "grey", sire: "Moonlight", dam: "Echo" },
+    { rank: 16, name: "Crimson Fire", color: "bay", sire: "Blaze", dam: "Heat" },
+    { rank: 17, name: "Ocean Wave", color: "bay", sire: "Tide", dam: "Spray" },
+    { rank: 18, name: "Forest Wind", color: "brown", sire: "Breeze", dam: "Gust" },
     { rank: 19, name: "Octagonal", color: "brown", sire: "Zabeel", dam: "Eight Carat" },
     { rank: 20, name: "Lonhro", color: "black", sire: "Octagonal", dam: "Shadea" },
     { rank: 21, name: "Todman", color: "chestnut", sire: "Star Kingdom", dam: "Oceana" },
@@ -260,18 +445,23 @@ const horseData = [
     { rank: 100, name: "Farnan", color: "bay", sire: "Not A Single Doubt", dam: "Tallow" }
 ];
 
+// Store bred horses (descendants/racers)
+let bornRacers = [];
 let selection = [];
 const grid = document.getElementById('vault-grid');
 const legacyOutput = document.getElementById('legacy-output');
 const status = document.getElementById('selection-status');
+const breedingBay = document.getElementById('breeding-bay');
+const racingBay = document.getElementById('racing-bay');
 
 function render(list) {
     grid.innerHTML = '';
     list.forEach(h => {
         const card = document.createElement('div');
         card.className = `horse-card ${h.color}`;
+        const isDescendant = h.rank > 100 ? ' [RACER]' : '';
         card.innerHTML = `
-            <div class="rank">ID_${h.rank.toString().padStart(3, '0')}</div>
+            <div class="rank">ID_${h.rank.toString().padStart(3, '0')}${isDescendant}</div>
             <div class="name">${h.name}</div>
             <div class="stats">
                 SIRE: <b>${h.sire}</b><br>
@@ -303,7 +493,18 @@ function selectHorse(horse, el) {
 
 function generateLegacy(p1, p2) {
     const legacyName = (p1.name.substring(0, 4) + p2.name.substring(p2.name.length - 4)).toUpperCase();
-    status.innerText = `SYNTHESIZING: ${legacyName}`;
+    const newRacer = {
+        rank: 100 + bornRacers.length + 1,
+        name: legacyName,
+        color: Math.random() > 0.5 ? p1.color : p2.color,
+        sire: p1.name,
+        dam: p2.name,
+        isDescendant: true,
+        speed: Math.floor(Math.random() * 100) + p1.rank + p2.rank
+    };
+    
+    bornRacers.push(newRacer);
+    status.innerText = `✓ RACER SYNTHESIZED: ${legacyName} - NOW AVAILABLE IN ARENA!`;
     
     // Generative SVG Glitch Logic
     const color1 = getComputedStyle(document.documentElement).getPropertyValue(`--neon-blue`).trim();
@@ -321,19 +522,150 @@ function generateLegacy(p1, p2) {
                 <rect x="50" y="50" width="100" height="100" stroke="${color2}" stroke-width="1" fill="none" />
                 <path d="M 20 100 L 180 100 M 100 20 L 100 180" stroke="white" stroke-width="0.5" />
                 <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10" font-family="monospace">
-                    DESCENDANT: ${legacyName}
+                    RACER: ${legacyName}
                 </text>
                 <text x="50%" y="96%" dominant-baseline="middle" text-anchor="middle" fill="${color1}" font-size="6">
-                    GENETIC MASH: ${p1.rank} x ${p2.rank}
+                    BRED: ${p1.rank} x ${p2.rank}
                 </text>
             </g>
         </svg>
     `;
     legacyOutput.innerHTML = svg;
+    
+    // Update racing bay with new racers
+    updateDescendantsList();
+}
+
+function updateDescendantsList() {
+    const listDiv = document.getElementById('descendants-list');
+    if (bornRacers.length === 0) {
+        listDiv.innerHTML = '<p style="color: var(--neon-pink); text-align: center; margin: 20px 0;">NO RACERS BRED YET. BREED DESCENDANTS TO RACE!</p>';
+        return;
+    }
+    
+    let html = '<div style="color: var(--neon-green); text-align: center; margin: 20px 0;"><strong>🏁 AVAILABLE RACERS (Total: ' + bornRacers.length + '):</strong></div><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 10px;">';
+    
+    bornRacers.forEach((racer, idx) => {
+        html += `<div style="background: #111; border: 1px solid var(--neon-pink); padding: 10px; text-align: center; color: var(--neon-blue);">
+            <strong>${racer.name}</strong><br><small style="color: var(--neon-green);">⚡ Speed: ${racer.speed}</small><br><small style="color: #888;">ID: ${racer.rank}</small>
+        </div>`;
+    });
+    
+    html += '</div>';
+    listDiv.innerHTML = html;
 }
 
 render(horseData);
 
+// Tab switching
+document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        if (tab === 'racing') {
+            breedingBay.classList.add('hide');
+            racingBay.classList.add('active');
+            grid.classList.add('hide');
+            document.getElementById('finder').style.display = 'none';
+            updateDescendantsList();
+        } else {
+            breedingBay.classList.remove('hide');
+            racingBay.classList.remove('active');
+            grid.classList.remove('hide');
+            document.getElementById('finder').style.display = 'block';
+        }
+    });
+});
+
+// Racing functionality
+document.getElementById('start-race-btn').addEventListener('click', startRace);
+document.getElementById('reset-race-btn').addEventListener('click', resetRace);
+
+function startRace() {
+    if (bornRacers.length === 0) {
+        alert('BREED SOME RACERS FIRST!');
+        return;
+    }
+    
+    const raceTrack = document.getElementById('race-track');
+    const raceResults = document.getElementById('race-results');
+    
+    raceTrack.innerHTML = '';
+    raceResults.classList.remove('show');
+    raceResults.innerHTML = '';
+    
+    document.getElementById('start-race-btn').disabled = true;
+    document.getElementById('reset-race-btn').disabled = true;
+    
+    // Create race lanes
+    const racers = [...bornRacers].sort(() => Math.random() - 0.5); // Randomize order
+    const raceLanes = {};
+    
+    racers.forEach(racer => {
+        raceLanes[racer.name] = { racer, progress: 0, speed: racer.speed + Math.random() * 50 };
+        
+        const lane = document.createElement('div');
+        lane.className = 'race-lane';
+        lane.innerHTML = `
+            <div class="horse-name">${racer.name}</div>
+            <div class="race-bar" id="bar-${racer.name}"></div>
+            <div class="race-position" id="pos-${racer.name}">0%</div>
+        `;
+        raceTrack.appendChild(lane);
+    });
+    
+    // Animate race
+    const raceInterval = setInterval(() => {
+        let finished = 0;
+        const finishLine = 100;
+        
+        Object.keys(raceLanes).forEach(name => {
+            const lane = raceLanes[name];
+            lane.progress += lane.speed / 100;
+            
+            if (lane.progress > finishLine) {
+                lane.progress = finishLine;
+                finished++;
+            }
+            
+            const bar = document.getElementById(`bar-${name}`);
+            const pos = document.getElementById(`pos-${name}`);
+            bar.style.maxWidth = lane.progress + '%';
+            pos.innerText = Math.min(100, Math.floor(lane.progress)) + '%';
+        });
+        
+        if (finished === racers.length) {
+            clearInterval(raceInterval);
+            showRaceResults(racers, raceLanes);
+            document.getElementById('start-race-btn').disabled = false;
+            document.getElementById('reset-race-btn').disabled = false;
+        }
+    }, 50);
+}
+
+function showRaceResults(racers, raceLanes) {
+    const sorted = racers.sort((a, b) => raceLanes[b.name].progress - raceLanes[a.name].progress);
+    const raceResults = document.getElementById('race-results');
+    
+    let html = '<div class="winner-title">🏆 RACE COMPLETE 🏆</div>';
+    sorted.forEach((racer, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '  ';
+        html += `<div style="margin: 10px 0; color: var(--neon-green);">${medal} ${idx + 1}. <strong>${racer.name}</strong> (Speed: ${racer.speed})</div>`;
+    });
+    
+    raceResults.innerHTML = html;
+    raceResults.classList.add('show');
+}
+
+function resetRace() {
+    document.getElementById('race-track').innerHTML = '';
+    document.getElementById('race-results').classList.remove('show');
+    document.getElementById('race-results').innerHTML = '';
+}
+
+// Search functionality
 document.getElementById('finder').addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const filtered = horseData.filter(h => 
