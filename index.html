@@ -26,7 +26,6 @@
             overflow-x: hidden;
         }
 
-        /* --- Glitch Header --- */
         header {
             padding: 40px;
             text-align: center;
@@ -55,7 +54,6 @@
             outline: none;
         }
 
-        /* --- Breeding Bay --- */
         #breeding-bay {
             background: #000;
             border: 2px dashed var(--neon-pink);
@@ -74,7 +72,6 @@
             background: #111;
         }
 
-        /* --- Vault Grid --- */
         #vault-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -102,7 +99,6 @@
             background: #1a001a;
         }
 
-        /* Color-Coded Glitch Borders */
         .bay { border-left: 8px solid var(--bay); }
         .chestnut { border-left: 8px solid var(--chestnut); }
         .grey { border-left: 8px solid var(--grey); }
@@ -127,7 +123,6 @@
         .stats { font-size: 0.7rem; color: #aaa; line-height: 1.5; }
         .stats b { color: var(--neon-green); }
 
-        /* --- Animations --- */
         @keyframes glitch-text {
             0% { transform: translate(0); }
             2% { transform: translate(-5px, 2px); skewX(10deg); }
@@ -141,7 +136,6 @@
             filter: contrast(150%) brightness(120%);
         }
 
-        /* --- Racing Mode --- */
         #racing-bay {
             display: none;
             background: linear-gradient(180deg, #0a0a0a 0%, #1a001a 100%);
@@ -257,18 +251,6 @@
             animation: fadeIn 0.5s ease-in;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .winner-title {
-            font-size: 1.5rem;
-            color: var(--neon-pink);
-            text-shadow: 0 0 10px var(--neon-pink);
-            margin: 15px 0;
-        }
-
         .tab-buttons {
             display: flex;
             justify-content: center;
@@ -294,15 +276,7 @@
             border-color: var(--neon-green);
         }
 
-        .tab-button:hover {
-            border-color: var(--neon-green);
-        }
-
-        #breeding-bay.hide {
-            display: none;
-        }
-
-        #vault-grid.hide {
+        #breeding-bay.hide, #vault-grid.hide {
             display: none;
         }
 
@@ -334,6 +308,7 @@
     <div class="race-controls">
         <button class="race-button" id="start-race-btn">START RACE</button>
         <button class="race-button" id="reset-race-btn">RESET</button>
+        <button class="race-button" id="clear-vault-btn" style="background: var(--neon-pink); font-size: 0.7rem; padding: 5px 10px;">PURGE VAULT</button>
     </div>
     <div class="race-track" id="race-track"></div>
     <div class="race-results" id="race-results"></div>
@@ -407,7 +382,6 @@ const horseData = [
     { rank: 62, name: "Chautauqua", color: "grey", sire: "Encosta De Lago", dam: "Lovely Jubly" },
     { rank: 63, name: "Nature Strip", color: "chestnut", sire: "Nicconi", dam: "Strikeline" },
     { rank: 64, name: "Verry Elleegant", color: "brown", sire: "Zed", dam: "Opulence" },
-    { rank: 65, name: "Eurythmic", color: "chestnut", sire: "Eudorus", dam: "Bob" },
     { rank: 66, name: "Vo Rogue", color: "bay", sire: "Ivor Prince", dam: "Vow" },
     { rank: 67, name: "Super Easy", color: "bay", sire: "Darci Brahma", dam: "Parfee" },
     { rank: 68, name: "Apache Cat", color: "chestnut", sire: "Lion Cavern", dam: "Tennessee Blaze" },
@@ -438,15 +412,14 @@ const horseData = [
     { rank: 93, name: "Via Sistina", color: "bay", sire: "Fastnet Rock", dam: "Nance" },
     { rank: 94, name: "Mr Brightside", color: "bay", sire: "Bullbars", dam: "Lilahjay" },
     { rank: 95, name: "Romantic Warrior", color: "bay", sire: "Acclamation", dam: "Folk Melody" },
-    { rank: 96, name: "Giga Kick", color: "chestnut", sire: "Scissor Kick", dam: "Rekindled" },
     { rank: 97, name: "Yes Yes Yes", color: "bay", sire: "Rubick", dam: "Sin She Can" },
     { rank: 98, name: "Russian Revolution", color: "bay", sire: "Snitzel", dam: "Ballet D'Amour" },
     { rank: 99, name: "Estijaab", color: "bay", sire: "Snitzel", dam: "Response" },
     { rank: 100, name: "Farnan", color: "bay", sire: "Not A Single Doubt", dam: "Tallow" }
 ];
 
-// Store bred horses (descendants/racers)
-let bornRacers = [];
+// PERSISTENCE: Initial load from Storage
+let bornRacers = JSON.parse(localStorage.getItem('au100_vault')) || [];
 let selection = [];
 const grid = document.getElementById('vault-grid');
 const legacyOutput = document.getElementById('legacy-output');
@@ -454,14 +427,17 @@ const status = document.getElementById('selection-status');
 const breedingBay = document.getElementById('breeding-bay');
 const racingBay = document.getElementById('racing-bay');
 
+function saveToStorage() {
+    localStorage.setItem('au100_vault', JSON.stringify(bornRacers));
+}
+
 function render(list) {
     grid.innerHTML = '';
     list.forEach(h => {
         const card = document.createElement('div');
         card.className = `horse-card ${h.color}`;
-        const isDescendant = h.rank > 100 ? ' [RACER]' : '';
         card.innerHTML = `
-            <div class="rank">ID_${h.rank.toString().padStart(3, '0')}${isDescendant}</div>
+            <div class="rank">ID_${h.rank.toString().padStart(3, '0')}</div>
             <div class="name">${h.name}</div>
             <div class="stats">
                 SIRE: <b>${h.sire}</b><br>
@@ -493,186 +469,147 @@ function selectHorse(horse, el) {
 
 function generateLegacy(p1, p2) {
     const legacyName = (p1.name.substring(0, 4) + p2.name.substring(p2.name.length - 4)).toUpperCase();
+    
+    // GAMEPLAY IMPACT: Phar Lap (Rank 1) is now a massive buff.
+    const basePotential = 250;
+    const calcSpeed = Math.floor(Math.random() * 50) + (basePotential - p1.rank) + (basePotential - p2.rank);
+
+    // GENERATIVE ART: Unique SVG Params
+    const freq = (Math.random() * 0.15 + 0.01).toFixed(3);
+    const scale = Math.floor(Math.random() * 60) + 15;
+    const rot = Math.floor(Math.random() * 360);
+    const shapeX = Math.floor(Math.random() * 40) - 20;
+
     const newRacer = {
         rank: 100 + bornRacers.length + 1,
         name: legacyName,
         color: Math.random() > 0.5 ? p1.color : p2.color,
         sire: p1.name,
         dam: p2.name,
-        isDescendant: true,
-        speed: Math.floor(Math.random() * 100) + p1.rank + p2.rank
+        speed: calcSpeed,
+        svgParams: { freq, scale, rot, shapeX }
     };
     
     bornRacers.push(newRacer);
-    status.innerText = `✓ RACER SYNTHESIZED: ${legacyName} - NOW AVAILABLE IN ARENA!`;
+    saveToStorage();
     
-    // Generative SVG Glitch Logic
-    const color1 = getComputedStyle(document.documentElement).getPropertyValue(`--neon-blue`).trim();
-    const color2 = getComputedStyle(document.documentElement).getPropertyValue(`--neon-pink`).trim();
+    status.innerText = `✓ SYNTHESIZED: ${legacyName} (SPEED: ${calcSpeed})`;
     
     const svg = `
         <svg viewBox="0 0 200 200" class="legacy-svg" xmlns="http://www.w3.org/2000/svg">
-            <filter id="glitch">
-                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" />
+            <filter id="glitch-${newRacer.rank}">
+                <feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="3" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="${scale}" />
             </filter>
             <rect width="100%" height="100%" fill="#000" />
-            <g filter="url(#glitch)">
-                <circle cx="100" cy="100" r="60" stroke="${color1}" stroke-width="2" fill="none" opacity="0.6" />
-                <rect x="50" y="50" width="100" height="100" stroke="${color2}" stroke-width="1" fill="none" />
-                <path d="M 20 100 L 180 100 M 100 20 L 100 180" stroke="white" stroke-width="0.5" />
-                <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" fill="white" font-size="10" font-family="monospace">
-                    RACER: ${legacyName}
-                </text>
-                <text x="50%" y="96%" dominant-baseline="middle" text-anchor="middle" fill="${color1}" font-size="6">
-                    BRED: ${p1.rank} x ${p2.rank}
-                </text>
+            <g filter="url(#glitch-${newRacer.rank})" transform="rotate(${rot} 100 100)">
+                <circle cx="${100 + shapeX}" cy="100" r="50" stroke="var(--neon-blue)" stroke-width="2" fill="none" />
+                <rect x="${60 - shapeX}" y="60" width="80" height="80" stroke="var(--neon-pink)" stroke-width="1" fill="none" />
+                <path d="M 0 100 H 200 M 100 0 V 200" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" />
             </g>
+            <text x="50%" y="90%" text-anchor="middle" fill="white" font-size="12" font-family="monospace">${legacyName}</text>
         </svg>
     `;
     legacyOutput.innerHTML = svg;
-    
-    // Update racing bay with new racers
     updateDescendantsList();
 }
 
 function updateDescendantsList() {
     const listDiv = document.getElementById('descendants-list');
     if (bornRacers.length === 0) {
-        listDiv.innerHTML = '<p style="color: var(--neon-pink); text-align: center; margin: 20px 0;">NO RACERS BRED YET. BREED DESCENDANTS TO RACE!</p>';
+        listDiv.innerHTML = '<p style="color: var(--neon-pink); text-align: center;">VAULT EMPTY. BREED LEGENDS TO POPULATE ARENA.</p>';
         return;
     }
     
-    let html = '<div style="color: var(--neon-green); text-align: center; margin: 20px 0;"><strong>🏁 AVAILABLE RACERS (Total: ' + bornRacers.length + '):</strong></div><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 10px;">';
-    
-    bornRacers.forEach((racer, idx) => {
-        html += `<div style="background: #111; border: 1px solid var(--neon-pink); padding: 10px; text-align: center; color: var(--neon-blue);">
-            <strong>${racer.name}</strong><br><small style="color: var(--neon-green);">⚡ Speed: ${racer.speed}</small><br><small style="color: #888;">ID: ${racer.rank}</small>
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+    bornRacers.forEach(r => {
+        html += `<div style="background: #111; border: 1px solid var(--neon-green); padding: 8px; font-size: 0.7rem; text-align: center;">
+            <b style="color: var(--neon-blue);">${r.name}</b><br>
+            <span style="color: var(--neon-pink);">⚡ ${r.speed}</span><br>
+            ID: ${r.rank}
         </div>`;
     });
-    
     html += '</div>';
     listDiv.innerHTML = html;
 }
 
-render(horseData);
-
-// Tab switching
-document.querySelectorAll('.tab-button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        if (tab === 'racing') {
-            breedingBay.classList.add('hide');
-            racingBay.classList.add('active');
-            grid.classList.add('hide');
-            document.getElementById('finder').style.display = 'none';
-            updateDescendantsList();
-        } else {
-            breedingBay.classList.remove('hide');
-            racingBay.classList.remove('active');
-            grid.classList.remove('hide');
-            document.getElementById('finder').style.display = 'block';
-        }
-    });
-});
-
-// Racing functionality
-document.getElementById('start-race-btn').addEventListener('click', startRace);
-document.getElementById('reset-race-btn').addEventListener('click', resetRace);
-
+// Racing
 function startRace() {
-    if (bornRacers.length === 0) {
-        alert('BREED SOME RACERS FIRST!');
-        return;
-    }
+    if (bornRacers.length === 0) return alert('BREED RACERS FIRST!');
     
     const raceTrack = document.getElementById('race-track');
     const raceResults = document.getElementById('race-results');
-    
     raceTrack.innerHTML = '';
     raceResults.classList.remove('show');
-    raceResults.innerHTML = '';
     
     document.getElementById('start-race-btn').disabled = true;
-    document.getElementById('reset-race-btn').disabled = true;
     
-    // Create race lanes
-    const racers = [...bornRacers].sort(() => Math.random() - 0.5); // Randomize order
-    const raceLanes = {};
-    
-    racers.forEach(racer => {
-        raceLanes[racer.name] = { racer, progress: 0, speed: racer.speed + Math.random() * 50 };
-        
+    const racers = [...bornRacers].slice(-8); // Race up to last 8 bred
+    const raceState = racers.map(r => ({ ...r, progress: 0, currentSpeed: r.speed * 0.1 }));
+
+    raceState.forEach(r => {
         const lane = document.createElement('div');
         lane.className = 'race-lane';
-        lane.innerHTML = `
-            <div class="horse-name">${racer.name}</div>
-            <div class="race-bar" id="bar-${racer.name}"></div>
-            <div class="race-position" id="pos-${racer.name}">0%</div>
-        `;
+        lane.innerHTML = `<div class="horse-name">${r.name}</div><div class="race-bar" id="bar-${r.rank}"></div><div class="race-position" id="pos-${r.rank}">0%</div>`;
         raceTrack.appendChild(lane);
     });
-    
-    // Animate race
-    const raceInterval = setInterval(() => {
-        let finished = 0;
-        const finishLine = 100;
-        
-        Object.keys(raceLanes).forEach(name => {
-            const lane = raceLanes[name];
-            lane.progress += lane.speed / 100;
-            
-            if (lane.progress > finishLine) {
-                lane.progress = finishLine;
-                finished++;
-            }
-            
-            const bar = document.getElementById(`bar-${name}`);
-            const pos = document.getElementById(`pos-${name}`);
-            bar.style.maxWidth = lane.progress + '%';
-            pos.innerText = Math.min(100, Math.floor(lane.progress)) + '%';
+
+    const timer = setInterval(() => {
+        let done = 0;
+        raceState.forEach(r => {
+            r.progress += (r.currentSpeed / 10) + (Math.random() * 2);
+            if (r.progress >= 100) { r.progress = 100; done++; }
+            document.getElementById(`bar-${r.rank}`).style.maxWidth = r.progress + '%';
+            document.getElementById(`pos-${r.rank}`).innerText = Math.floor(r.progress) + '%';
         });
-        
-        if (finished === racers.length) {
-            clearInterval(raceInterval);
-            showRaceResults(racers, raceLanes);
+
+        if (done === raceState.length) {
+            clearInterval(timer);
             document.getElementById('start-race-btn').disabled = false;
-            document.getElementById('reset-race-btn').disabled = false;
+            const winners = raceState.sort((a, b) => b.progress - a.progress);
+            raceResults.innerHTML = `<div class="winner-title">🏆 WINNER: ${winners[0].name}</div>`;
+            raceResults.classList.add('show');
         }
     }, 50);
 }
 
-function showRaceResults(racers, raceLanes) {
-    const sorted = racers.sort((a, b) => raceLanes[b.name].progress - raceLanes[a.name].progress);
-    const raceResults = document.getElementById('race-results');
-    
-    let html = '<div class="winner-title">🏆 RACE COMPLETE 🏆</div>';
-    sorted.forEach((racer, idx) => {
-        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '  ';
-        html += `<div style="margin: 10px 0; color: var(--neon-green);">${medal} ${idx + 1}. <strong>${racer.name}</strong> (Speed: ${racer.speed})</div>`;
-    });
-    
-    raceResults.innerHTML = html;
-    raceResults.classList.add('show');
-}
-
+// Reset & Purge
 function resetRace() {
     document.getElementById('race-track').innerHTML = '';
     document.getElementById('race-results').classList.remove('show');
-    document.getElementById('race-results').innerHTML = '';
 }
 
-// Search functionality
-document.getElementById('finder').addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = horseData.filter(h => 
-        h.name.toLowerCase().includes(term) || h.rank.toString() === term
-    );
-    render(filtered);
+document.getElementById('clear-vault-btn').onclick = () => {
+    if(confirm("WIPE ENTIRE BRED VAULT?")) {
+        bornRacers = [];
+        saveToStorage();
+        updateDescendantsList();
+    }
+};
+
+// Tabs
+document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const isRacing = btn.dataset.tab === 'racing';
+        breedingBay.classList.toggle('hide', isRacing);
+        grid.classList.toggle('hide', isRacing);
+        racingBay.classList.toggle('active', isRacing);
+        document.getElementById('finder').style.display = isRacing ? 'none' : 'block';
+    };
 });
+
+document.getElementById('finder').oninput = (e) => {
+    const t = e.target.value.toLowerCase();
+    render(horseData.filter(h => h.name.toLowerCase().includes(t) || h.rank.toString() === t));
+};
+
+document.getElementById('start-race-btn').onclick = startRace;
+document.getElementById('reset-race-btn').onclick = resetRace;
+
+render(horseData);
+updateDescendantsList();
 </script>
 </body>
 </html>
